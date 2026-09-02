@@ -1,0 +1,74 @@
+### HubSpot Integration Service - example requests
+### Open this file with the "REST Client" extension in VS Code, or copy
+### each block into curl/Postman. See README.md for the full walkthrough.
+
+@baseUrl = http://localhost:3000
+
+### Service info
+GET {{baseUrl}}/
+
+### Health check
+GET {{baseUrl}}/health
+
+### 1. Connect a HubSpot account - open this URL in a browser (not a plain
+### request, since it's an interactive OAuth consent screen redirect)
+# GET {{baseUrl}}/auth/hubspot/install
+
+### Check connection status
+GET {{baseUrl}}/auth/hubspot/status
+
+### 2. Trigger a full sync of contacts
+POST {{baseUrl}}/sync/contacts
+
+### Trigger a full sync of deals
+POST {{baseUrl}}/sync/deals
+
+### Sync both in one call
+POST {{baseUrl}}/sync
+
+### View recent sync run history
+GET {{baseUrl}}/sync/runs?limit=10
+
+### 3. List contacts from the local DB (filter + sort + paginate)
+GET {{baseUrl}}/contacts?page=1&pageSize=25&sort=updatedAt:desc
+
+### Filter contacts by email substring
+GET {{baseUrl}}/contacts?email=example.com
+
+### Filter contacts by lifecycle stage
+GET {{baseUrl}}/contacts?lifecycleStage=lead
+
+### Get one contact by local id
+# GET {{baseUrl}}/contacts/<id>
+
+### 4. List deals from the local DB
+GET {{baseUrl}}/deals?page=1&pageSize=25&sort=amount:desc
+
+### Filter deals by stage and amount range
+GET {{baseUrl}}/deals?stage=closedwon&minAmount=1000&maxAmount=50000
+
+### 5. Recent webhook deliveries received
+GET {{baseUrl}}/webhooks/events?limit=20
+
+### Retry processing a previously-failed webhook event
+# POST {{baseUrl}}/webhooks/events/<id>/retry
+
+### 6. Simulate a HubSpot webhook locally (bypasses signature check, dev only)
+POST {{baseUrl}}/webhooks/hubspot
+Content-Type: application/json
+X-Skip-Signature-Check: true
+
+[
+  {
+    "eventId": 1,
+    "subscriptionType": "contact.propertyChange",
+    "objectId": 12345,
+    "occurredAt": 1700000000000,
+    "changeSource": "CRM",
+    "propertyName": "lifecyclestage",
+    "propertyValue": "customer"
+  }
+]
+
+### For a *real* signed webhook test (no bypass header), run:
+###   npm run test:webhook -- --type=contact.propertyChange --objectId=12345

@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Overrides just the DB location to use the mounted volume below;
+      # everything else comes from your .env file.
+      DATABASE_URL: "file:/app/data/prod.db"
+    volumes:
+      - hubspot-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  hubspot-data:
