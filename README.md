@@ -142,15 +142,41 @@ hubspot-integration-service/
 
 ### 1. Create a HubSpot app
 
-1. Log into your HubSpot **developer account** → **Apps** → **Create app**.
-2. Under **Auth**, note your **Client ID** and **Client secret**.
-3. Add a **Redirect URL**: `http://localhost:3000/auth/hubspot/callback`
-   (update this to your deployed URL later if you deploy).
-4. Under **Scopes**, enable:
-   `crm.objects.contacts.read`, `crm.objects.contacts.write`,
-   `crm.objects.deals.read`, `crm.objects.deals.write`.
-5. Under **Test accounts**, connect/create a free CRM test account — this is
-   what you'll actually authenticate against.
+Create a free [HubSpot developer account](https://developers.hubspot.com/) if
+you don't have one — during signup it will also ask for a "company website";
+any real root domain you control works (e.g. `https://github.com`), it's
+just onboarding personalization and has no bearing on the app itself.
+
+> **Heads up:** as of the current HubSpot developer console, creating a new
+> OAuth ("public") app through the classic UI is disabled — HubSpot now
+> requires new OAuth apps to be created via their CLI. The
+> [`hubspot-app/`](hubspot-app/) folder in this repo is a ready-to-deploy
+> project with the exact OAuth + webhook config this service expects, so you
+> don't have to figure out the schema from scratch:
+>
+> ```bash
+> npm install -g @hubspot/cli
+>
+> # In HubSpot: Development > Keys > Personal Access Key > Generate,
+> # then use it to authenticate the CLI (no browser flow needed):
+> hs account auth --pak <your-personal-access-key> --account <your-hub-id> --name my-hub --default
+>
+> cd hubspot-app
+> hs project upload   # builds + deploys, creating the app in your account
+> ```
+>
+> Then in HubSpot: **Development → Projects → central-ai-integration →
+> central_ai_integration_app → Auth tab** — copy the **Client ID** and
+> **Client secret** shown there. The redirect URL
+> (`http://localhost:3000/auth/hubspot/callback`) and scopes
+> (`crm.objects.contacts.read/write`, `crm.objects.deals.read/write`) are
+> already configured in [`hubspot-app/src/app/app-hsmeta.json`](hubspot-app/src/app/app-hsmeta.json).
+> See [`hubspot-app/README.md`](hubspot-app/README.md) for details, including
+> activating live webhook delivery.
+>
+> If your account instead shows a working classic **Apps → Create app** UI,
+> that works too — set the same redirect URL and scopes there and skip the
+> CLI.
 
 ### 2. Install and configure
 
@@ -319,8 +345,26 @@ Recent deliveries: `GET /webhooks/events`.
 
 ### Registering the subscription with HubSpot
 
-**Option A — script (programmatic, satisfies "register a webhook subscription
-in code"):**
+**Option A (recommended, what this repo actually uses) — declarative, via the
+HubSpot CLI project in [`hubspot-app/`](hubspot-app/):** the subscriptions
+(`contact.creation/deletion/propertyChange`, `deal.creation/deletion/propertyChange`)
+and the target URL are defined in
+[`hubspot-app/src/app/webhooks/webhooks-hsmeta.json`](hubspot-app/src/app/webhooks/webhooks-hsmeta.json).
+Update `targetUrl` to a public HTTPS URL (an `ngrok` tunnel locally, or your
+deployed URL) and run:
+
+```bash
+cd hubspot-app
+hs project upload
+```
+
+This is what registers the subscription with HubSpot — no separate script
+needed once the app is deployed this way.
+
+**Option B — script against the legacy Webhooks Management API** (kept for
+reference / for an app created through the classic UI, which uses a
+different, older webhooks API keyed by a developer API key rather than the
+project's declarative config):
 
 ```bash
 # .env needs: HUBSPOT_APP_ID, HUBSPOT_DEVELOPER_API_KEY (from
@@ -335,8 +379,9 @@ subscribe to `contact.creation`, `contact.deletion`, `contact.propertyChange`
 (per tracked property), and the equivalent `deal.*` events. See
 [`scripts/register-webhook.ts`](scripts/register-webhook.ts).
 
-**Option B — HubSpot UI:** developer account → your app → **Webhooks** tab →
-set the target URL and subscribe to the same event types manually.
+**Option C — HubSpot UI**, only available if your account still shows a
+working classic app: developer account → your app → **Webhooks** tab → set
+the target URL and subscribe to the same event types manually.
 
 > Webhooks require a **publicly reachable HTTPS URL** — `localhost` won't
 > work. For local testing, use a tunnel (e.g. `ngrok http 3000`) and point
@@ -502,6 +547,15 @@ Any Node-friendly free-tier host works (Render, Railway, Vercel). Example for
   strings from untrusted clients, this was accepted as a documented trade-off
   rather than taking on an Express major-version migration under the
   assignment's time constraints.
+
+- **HubSpot moved OAuth app creation to a CLI-based "Projects" model** partway
+  through building this (their classic "Create app" UI now refuses to create
+  new public/OAuth apps). Rather than fall back to a private-app static token
+  — simpler, but a weaker demonstration of OAuth2 for this assignment — this
+  repo includes a working [`hubspot-app/`](hubspot-app/) CLI project that
+  deploys the exact app this service needs, so the real OAuth2
+  authorization-code + refresh-token flow this project implements stays
+  fully exercisable end-to-end, not just unit-tested in isolation.
 
 ## Known limitations & possible next steps
 

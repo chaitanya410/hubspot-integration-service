@@ -1,0 +1,33 @@
+{
+  "uid": "central_ai_integration_webhooks",
+  "type": "webhooks",
+  "config": {
+    "settings": {
+      "targetUrl": "https://example.com/webhooks/hubspot",
+      "maxConcurrentRequests": 10
+    },
+    "subscriptions": {
+      "crmObjects": [],
+      "legacyCrmObjects": [
+        { "subscriptionType": "contact.creation", "active": true },
+        { "subscriptionType": "contact.deletion", "active": true },
+        { "subscriptionType": "contact.propertyChange", "propertyName": "email", "active": true },
+        { "subscriptionType": "contact.propertyChange", "propertyName": "firstname", "active": true },
+        { "subscriptionType": "contact.propertyChange", "propertyName": "lastname", "active": true },
+        { "subscriptionType": "contact.propertyChange", "propertyName": "phone", "active": true },
+        { "subscriptionType": "contact.propertyChange", "propertyName": "company", "active": true },
+        { "subscriptionType": "contact.propertyChange", "propertyName": "lifecyclestage", "active": true },
+        { "subscriptionType": "deal.creation", "active": true },
+        { "subscriptionType": "deal.deletion", "active": true },
+        { "subscriptionType": "deal.propertyChange", "propertyName": "dealname", "active": true },
+        { "subscriptionType": "deal.propertyChange", "propertyName": "amount", "active": true },
+        { "subscriptionType": "deal.propertyChange", "propertyName": "dealstage", "active": true },
+        { "subscriptionType": "deal.propertyChange", "propertyName": "pipeline", "active": true },
+        { "subscriptionType": "deal.propertyChange", "propertyName": "closedate", "active": true }
+      ],
+      "hubEvents": [
+        { "subscriptionType": "contact.privacyDeletion", "active": true }
+      ]
+    }
+  }
+}
