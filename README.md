@@ -70,6 +70,13 @@ the focus rather than account provisioning friction:
 - ✅ Bonus: OAuth2 refresh flow, webhook signature validation, an optional background
   sync job, Docker/Docker Compose, a unit test suite, and deploy-ready structure.
 
+> **Verified live, not just unit-tested:** every piece above was exercised
+> against a real HubSpot developer account — the OAuth2 install flow, a
+> paginated sync of HubSpot's seeded sample contacts, and (via a
+> `cloudflared` tunnel) a real webhook delivery triggered by editing a
+> contact in HubSpot's UI, HMAC-verified and reflected in the local DB
+> within seconds. See [Webhooks](#webhooks) for how to reproduce that.
+
 ## Architecture
 
 ```mermaid
@@ -350,7 +357,7 @@ HubSpot CLI project in [`hubspot-app/`](hubspot-app/):** the subscriptions
 (`contact.creation/deletion/propertyChange`, `deal.creation/deletion/propertyChange`)
 and the target URL are defined in
 [`hubspot-app/src/app/webhooks/webhooks-hsmeta.json`](hubspot-app/src/app/webhooks/webhooks-hsmeta.json).
-Update `targetUrl` to a public HTTPS URL (an `ngrok` tunnel locally, or your
+Update `targetUrl` to a public HTTPS URL (a `cloudflared` tunnel locally, or your
 deployed URL) and run:
 
 ```bash
@@ -370,7 +377,7 @@ project's declarative config):
 # .env needs: HUBSPOT_APP_ID, HUBSPOT_DEVELOPER_API_KEY (from
 # https://app.hubspot.com/l/developer-api-key — different from your OAuth
 # client secret), WEBHOOK_TARGET_URL (a publicly reachable URL, e.g. your
-# ngrok tunnel or deployed URL)
+# cloudflared tunnel or deployed URL)
 npm run register-webhook
 ```
 
@@ -384,8 +391,28 @@ working classic app: developer account → your app → **Webhooks** tab → set
 the target URL and subscribe to the same event types manually.
 
 > Webhooks require a **publicly reachable HTTPS URL** — `localhost` won't
-> work. For local testing, use a tunnel (e.g. `ngrok http 3000`) and point
-> `WEBHOOK_TARGET_URL` / the app's webhook settings at the tunnel URL.
+> work. For local testing, use a tunnel and point `WEBHOOK_TARGET_URL` /
+> the app's webhook settings at the tunnel URL. **Recommended:**
+> [`cloudflared`](https://github.com/cloudflare/cloudflared) quick tunnels —
+> no account needed, fast, and reliable:
+> ```bash
+> cloudflared tunnel --url http://localhost:3000
+> ```
+> This prints a `https://<random>.trycloudflare.com` URL. Set that as both
+> `BASE_URL` in `.env` (critical — it's part of the signed string HubSpot's
+> HMAC covers, so it must exactly match the URL HubSpot actually delivered
+> to) and `targetUrl` in `hubspot-app/src/app/webhooks/webhooks-hsmeta.json`,
+> then `hs project upload` to activate it.
+>
+> We evaluated `ngrok` and `localtunnel` too: `ngrok`'s binary got flagged
+> and deleted by Windows Defender as a false positive on this machine before
+> it could even run; `localtunnel`'s free relay was reachable but slow
+> enough (confirmed via HubSpot's own delivery logs, which showed repeated
+> `408`/timeout results) that HubSpot's webhook delivery timeout gave up
+> before the request completed. `cloudflared`'s quick tunnels had neither
+> problem and delivered real HubSpot events (verified by editing a live
+> sample contact and watching the signed webhook arrive, get verified, and
+> update the local DB within seconds).
 
 ### Testing webhook handling without waiting for HubSpot
 

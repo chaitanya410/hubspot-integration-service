@@ -44,7 +44,7 @@ your project → the app component → Auth tab** to copy the **Client ID** and
 `webhooks-hsmeta.json`'s `targetUrl` is a placeholder
 (`https://example.com/webhooks/hubspot`) because HubSpot requires webhook
 target URLs to be **HTTPS** — `http://localhost` is rejected at deploy time.
-Once you have a public HTTPS URL (an `ngrok http 3000` tunnel, or your
+Once you have a public HTTPS URL (a `cloudflared tunnel --url http://localhost:3000` tunnel, or your
 deployed service), update `targetUrl` there and re-run `hs project upload`
 to activate live webhook delivery.
 

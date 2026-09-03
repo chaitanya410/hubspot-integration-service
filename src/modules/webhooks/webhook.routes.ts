@@ -21,8 +21,8 @@ webhookRouter.post("/hubspot", async (req, res) => {
   const timestamp = req.header("X-HubSpot-Request-Timestamp");
 
   // In development, HubSpot's real webhooks are hard to trigger from
-  // localhost without a public tunnel (ngrok). We still validate the
-  // signature whenever one is sent, but allow it to be skipped
+  // localhost without a public tunnel (e.g. cloudflared). We still validate
+  // the signature whenever one is sent, but allow it to be skipped
   // explicitly for local curl/Postman testing via a header nobody but
   // us would send. This never applies in production.
   const skipVerification = env.NODE_ENV !== "production" && req.header("X-Skip-Signature-Check") === "true";
