@@ -1,4 +1,4 @@
-import { createApp } from "./app";
+import { createApp } from "./expressApp";
 import { env } from "./config/env";
 import { logger } from "./lib/logger";
 import { startScheduledSync } from "./jobs/scheduledSync";

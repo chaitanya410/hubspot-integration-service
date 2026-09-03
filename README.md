@@ -7,6 +7,12 @@ local REST API — built for the Central AI Backend / Integration Engineer take-
 
 Built with **Node.js + TypeScript**, Express, Prisma, and Zod.
 
+> 🚀 **Live**: [https://hubspot-integration-service.vercel.app](https://hubspot-integration-service.vercel.app)
+> (try `GET /health`, `GET /contacts`, `GET /deals` — no auth needed to read;
+> it's actively connected to a real HubSpot account and synced with real
+> data). Deployed on Vercel with a Postgres database — see
+> [Deployment](#deployment) for how.
+
 > 📄 This README covers setup, architecture, API reference, reliability design,
 > and trade-offs. If you're reviewing this for the Central AI assignment, the
 > [Design decisions & trade-offs](#design-decisions--trade-offs) section is a
@@ -72,10 +78,11 @@ the focus rather than account provisioning friction:
 
 > **Verified live, not just unit-tested:** every piece above was exercised
 > against a real HubSpot developer account — the OAuth2 install flow, a
-> paginated sync of HubSpot's seeded sample contacts, and (via a
-> `cloudflared` tunnel) a real webhook delivery triggered by editing a
-> contact in HubSpot's UI, HMAC-verified and reflected in the local DB
-> within seconds. See [Webhooks](#webhooks) for how to reproduce that.
+> paginated sync of HubSpot's seeded sample contacts, and a real webhook
+> delivery triggered by editing a contact in HubSpot's UI, HMAC-verified and
+> reflected in the database within seconds. All of it is now running
+> permanently on the live deployment linked above — not a one-off local
+> test. See [Webhooks](#webhooks) and [Deployment](#deployment) for details.
 
 ## Architecture
 
@@ -88,7 +95,7 @@ flowchart LR
         Routes["Routes\nauth · sync · contacts · deals · webhooks"]
         Services["Service layer\nauth.service · sync.service · webhook.service"]
         HubClient["HubSpot client\nauth header + retry/backoff"]
-        DB[(SQLite via Prisma)]
+        DB[(PostgreSQL via Prisma)]
     end
 
     HubSpot["HubSpot CRM API\n(OAuth2, CRM Objects v3, Webhooks v3)"]
@@ -202,14 +209,25 @@ Fill in `.env`:
 | `HUBSPOT_REDIRECT_URI` | Must exactly match the app's configured Redirect URL |
 | `HUBSPOT_SCOPES` | Space-separated scopes requested at install |
 | `BASE_URL` | Where this service is reachable (`http://localhost:3000` locally) |
-| `DATABASE_URL` | SQLite file path, default `file:./dev.db` (created under `prisma/`) |
+| `DATABASE_URL` | A PostgreSQL connection string — see step 3 for the fastest way to get one locally |
 | `HUBSPOT_DEVELOPER_API_KEY`, `HUBSPOT_APP_ID`, `WEBHOOK_TARGET_URL` | Only needed for `npm run register-webhook` — see [Webhooks](#webhooks) |
 | `ENABLE_SCHEDULED_SYNC`, `SYNC_INTERVAL_MINUTES` | Optional background sync — see [Background sync](#background-sync-bonus) |
 
 ### 3. Set up the database and run
 
+Needs a PostgreSQL database. Easiest local option — spin one up with Docker
+Compose (no local Postgres install needed):
+
 ```bash
-npm run prisma:migrate      # creates prisma/dev.db and applies the schema
+docker compose up -d db
+# then in .env: DATABASE_URL="postgresql://hubspot:hubspot@localhost:5432/hubspot_integration?schema=public"
+```
+
+Any other Postgres works too (a free [Neon](https://neon.tech) database, a
+local install, etc.) — just put its connection string in `DATABASE_URL`.
+
+```bash
+npm run prisma:migrate      # applies the schema
 npm run dev                 # starts on http://localhost:3000 with auto-reload
 ```
 
@@ -453,7 +471,7 @@ curl/Postman experiments — see `requests.http`.)
 
 ## Database schema
 
-SQLite via Prisma (see [`prisma/schema.prisma`](prisma/schema.prisma)):
+PostgreSQL via Prisma (see [`prisma/schema.prisma`](prisma/schema.prisma)):
 
 | Model | Purpose |
 |---|---|
@@ -500,48 +518,86 @@ provably correct, without depending on a live HubSpot account or database:
 ## Docker
 
 ```bash
-docker build -t hubspot-integration-service .
-docker run --env-file .env -p 3000:3000 -v hubspot-data:/app/data hubspot-integration-service
+docker compose up --build
 ```
 
-Or with Compose (reads `.env`, persists the SQLite file in a named volume,
-runs `prisma migrate deploy` automatically on container start):
+Runs the app plus a local PostgreSQL container together (see
+[`docker-compose.yml`](docker-compose.yml)); reads HubSpot credentials from
+`.env`, runs `prisma migrate deploy` automatically on container start. To run
+just the image against an external Postgres instead:
 
 ```bash
-docker compose up --build
+docker build -t hubspot-integration-service .
+docker run --env-file .env -e DATABASE_URL="postgresql://..." -p 3000:3000 hubspot-integration-service
 ```
 
 ## Deployment
 
-Any Node-friendly free-tier host works (Render, Railway, Vercel). Example for
-**Render** (Web Service):
+**This service is actually deployed** at
+[hubspot-integration-service.vercel.app](https://hubspot-integration-service.vercel.app)
+— connected to a real HubSpot account, synced, and receiving live webhooks.
+Here's exactly how, in case you're reproducing it:
 
-1. Connect your GitHub repo. Build command: `npm install && npm run build`.
-   Start command: `npm start` (or let the Dockerfile drive it if using Render's
-   Docker deploy option).
-2. Set all the `.env` variables from `.env.example` in Render's dashboard,
-   with `BASE_URL` set to your Render URL and `HUBSPOT_REDIRECT_URI` updated
-   to `https://<your-app>.onrender.com/auth/hubspot/callback` — remember to
-   also update the Redirect URL in your HubSpot app's Auth settings to match.
-3. **Persistence caveat**: free-tier Render web services have an *ephemeral*
-   filesystem — a plain SQLite file will not survive a redeploy or restart.
-   For a real production deployment, swap `provider = "sqlite"` for
-   `provider = "postgresql"` in `prisma/schema.prisma`, point `DATABASE_URL`
-   at a free Render/Railway Postgres instance, and re-run
-   `npx prisma migrate dev`. This is a one-line schema change since all the
-   sync/webhook/API logic goes through Prisma, not raw SQL — see
-   [trade-offs](#design-decisions--trade-offs) for why SQLite is the default here.
-4. Update your webhook's target URL (`npm run register-webhook` again, or the
-   HubSpot UI) to point at the deployed URL.
+### Vercel (what's live)
+
+1. **Database**: Vercel Functions have no persistent filesystem, so this
+   needed a real Postgres, not a local file. Installed the **Prisma
+   Postgres** marketplace integration directly from the Vercel CLI —
+   `vercel install prisma/prisma-postgres` — which provisions the database
+   and wires `DATABASE_URL` into the project's env vars automatically.
+2. **Serverless entrypoint**: [`api/index.ts`](api/index.ts) constructs and
+   exports the same Express app used locally (`createApp()` from
+   [`src/expressApp.ts`](src/expressApp.ts)) — Vercel's Node runtime accepts
+   an Express app instance directly as a request handler. [`vercel.json`](vercel.json)
+   rewrites every path to that one function so `/contacts`, `/webhooks/hubspot`,
+   etc. all resolve correctly, not just `/api` itself.
+3. **Migrations on every deploy**: `package.json`'s `vercel-build` script
+   (`prisma generate && prisma migrate deploy`) runs during Vercel's build
+   step, which has network access and the env vars — so the schema is
+   always in sync with what's deployed, no manual step needed.
+4. **Env vars**: all of `.env.example`'s HubSpot variables, set via
+   `vercel env add <NAME> production --value "..."`, plus `BASE_URL` and
+   `HUBSPOT_REDIRECT_URI` pointing at the real
+   `https://hubspot-integration-service.vercel.app` URL.
+5. **HubSpot side**: both `redirectUrls` (in
+   [`hubspot-app/src/app/app-hsmeta.json`](hubspot-app/src/app/app-hsmeta.json))
+   and the webhook `targetUrl` (in
+   [`hubspot-app/src/app/webhooks/webhooks-hsmeta.json`](hubspot-app/src/app/webhooks/webhooks-hsmeta.json))
+   were updated to the production URL and pushed with `hs project upload` —
+   so webhooks now deliver to a stable, permanent endpoint instead of a
+   throwaway local tunnel.
+
+To do this yourself: `vercel link`, `vercel install prisma/prisma-postgres`,
+set the env vars above, `vercel deploy --prod`.
+
+**A snag worth knowing about**: Vercel's zero-config "Express" framework
+detection scans the whole `src/` tree for an entrypoint, and it originally
+collided with our explicit `api/index.ts` (it kept trying to treat
+`src/app.ts` itself as a second, invalid entrypoint). Fixed by renaming that
+file to `src/expressApp.ts` so the heuristic no longer matches it — cheaper
+and more reliable than fighting the framework detection with more config.
+
+### Render / Railway (alternative)
+
+Both work fine too and are simpler if you'd rather avoid the serverless
+adaptation above — deploy the Dockerfile directly, or use `npm run build` +
+`npm start` as the build/start commands. Either way: set the same env vars
+(with `BASE_URL`/`HUBSPOT_REDIRECT_URI` pointing at your Render/Railway URL,
+updated to match in the HubSpot app config too), and point `DATABASE_URL` at
+a Postgres instance from the same host (both offer a free-tier Postgres).
 
 ## Design decisions & trade-offs
 
-- **SQLite by default, not Postgres.** This keeps `npm install && npm run dev`
-  a true zero-setup experience (no local Postgres/Docker required to try the
-  project). The trade-off is the ephemeral-disk issue on some free hosts,
-  called out explicitly above with the one-line fix (Prisma makes the DB
-  swap trivial because nothing outside `prisma/schema.prisma` and
-  `DATABASE_URL` is Postgres/SQLite-specific).
+- **Postgres, not SQLite.** Started with SQLite for a zero-setup local
+  experience, but switched once this was actually deployed: Vercel's
+  serverless Functions have no persistent/shared filesystem, so a local
+  SQLite file silently loses data between invocations there — it would have
+  looked fine locally and quietly broken in the one environment that
+  matters for the "deployed to a public URL" bonus point. Prisma made the
+  swap a schema-file + reset-migrations change, not a rewrite, since
+  nothing in the sync/webhook/API logic touches SQL directly. `docker
+  compose up` keeps local dev just as easy (spins up Postgres alongside the
+  app) as SQLite was.
 - **Single-tenant `Account` model, but built for multi-tenant.** The
   assignment describes one connected app instance. `Account.hubId` is unique
   and `getValidAccessToken()` picks the most-recently-updated account, so

@@ -1,0 +1,6 @@
+# This directory intentionally left mostly empty.
+# vercel.json sets framework:null (to avoid Vercel's Express zero-config
+# auto-detection scanning src/ for an entrypoint), which makes Vercel
+# expect a static Output Directory named 'public' to exist even though
+# this project is API-only (served entirely by api/index.ts). This
+# placeholder file satisfies that check without shadowing any app route.

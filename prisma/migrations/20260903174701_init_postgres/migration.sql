@@ -1,18 +1,20 @@
 -- CreateTable
 CREATE TABLE "Account" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "hubId" INTEGER NOT NULL,
     "accessToken" TEXT NOT NULL,
     "refreshToken" TEXT NOT NULL,
-    "expiresAt" DATETIME NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
     "scopes" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Contact" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "hubspotId" TEXT NOT NULL,
     "email" TEXT,
     "firstName" TEXT,
@@ -20,57 +22,65 @@ CREATE TABLE "Contact" (
     "phone" TEXT,
     "company" TEXT,
     "lifecycleStage" TEXT,
-    "hubspotCreatedAt" DATETIME,
-    "hubspotUpdatedAt" DATETIME,
+    "hubspotCreatedAt" TIMESTAMP(3),
+    "hubspotUpdatedAt" TIMESTAMP(3),
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "raw" TEXT NOT NULL,
-    "syncedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "syncedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Contact_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Deal" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "hubspotId" TEXT NOT NULL,
     "dealName" TEXT,
-    "amount" REAL,
+    "amount" DOUBLE PRECISION,
     "dealStage" TEXT,
     "pipeline" TEXT,
-    "closeDate" DATETIME,
-    "hubspotCreatedAt" DATETIME,
-    "hubspotUpdatedAt" DATETIME,
+    "closeDate" TIMESTAMP(3),
+    "hubspotCreatedAt" TIMESTAMP(3),
+    "hubspotUpdatedAt" TIMESTAMP(3),
     "archived" BOOLEAN NOT NULL DEFAULT false,
     "raw" TEXT NOT NULL,
-    "syncedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "syncedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Deal_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "WebhookEvent" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "eventId" TEXT NOT NULL,
     "subscriptionType" TEXT NOT NULL,
     "objectId" TEXT NOT NULL,
-    "occurredAt" DATETIME,
+    "occurredAt" TIMESTAMP(3),
     "changeSource" TEXT,
     "payload" TEXT NOT NULL,
     "processed" BOOLEAN NOT NULL DEFAULT false,
     "processingError" TEXT,
-    "receivedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "receivedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WebhookEvent_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SyncRun" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "entityType" TEXT NOT NULL,
     "status" TEXT NOT NULL,
     "recordsSynced" INTEGER NOT NULL DEFAULT 0,
     "pagesFetched" INTEGER NOT NULL DEFAULT 0,
     "error" TEXT,
-    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "finishedAt" DATETIME
+    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "finishedAt" TIMESTAMP(3),
+
+    CONSTRAINT "SyncRun_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex

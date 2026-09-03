@@ -1,15 +1,17 @@
 // Prisma schema for the HubSpot Integration Service
 //
-// Default provider is SQLite for a zero-setup local dev experience
-// (see README "Database" section for how/why, and how to swap to
-// PostgreSQL for a persistent production deployment).
+// PostgreSQL - required for the Vercel deployment (serverless functions
+// have no persistent/shared filesystem, so SQLite's local file doesn't
+// work there). See README "Database" for the local-dev SQLite variant
+// this evolved from and why the swap was needed.
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

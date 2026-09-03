@@ -3,7 +3,7 @@
   "type": "webhooks",
   "config": {
     "settings": {
-      "targetUrl": "https://example.com/webhooks/hubspot",
+      "targetUrl": "https://hubspot-integration-service.vercel.app/webhooks/hubspot",
       "maxConcurrentRequests": 10
     },
     "subscriptions": {

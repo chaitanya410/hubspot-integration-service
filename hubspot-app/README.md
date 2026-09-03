@@ -39,15 +39,19 @@ Then, in your HubSpot developer account, go to **Development → Projects →
 your project → the app component → Auth tab** to copy the **Client ID** and
 **Client secret** into the main service's `.env`.
 
-## Before deploying for real webhook delivery
+## Webhook target URL
 
-`webhooks-hsmeta.json`'s `targetUrl` is a placeholder
-(`https://example.com/webhooks/hubspot`) because HubSpot requires webhook
-target URLs to be **HTTPS** — `http://localhost` is rejected at deploy time.
-Once you have a public HTTPS URL (a `cloudflared tunnel --url http://localhost:3000` tunnel, or your
-deployed service), update `targetUrl` there and re-run `hs project upload`
-to activate live webhook delivery.
+`webhooks-hsmeta.json`'s `targetUrl` currently points at the live production
+deployment (`https://hubspot-integration-service.vercel.app/webhooks/hubspot`)
+— that's a real, permanent HTTPS endpoint, so webhook delivery works as-is,
+no tunnel needed.
 
-The `redirectUrls` in `app-hsmeta.json` should also be updated (and kept in
-sync with `HUBSPOT_REDIRECT_URI` in `.env`) if you deploy the service
-somewhere other than `localhost:3000`.
+If you fork this and deploy your own instance, update `targetUrl` (HubSpot
+requires **HTTPS** here — `http://localhost` is rejected at deploy time) to
+your own deployed URL, or to a tunnel's URL for local testing (e.g.
+`cloudflared tunnel --url http://localhost:3000`), then re-run
+`hs project upload` to activate it.
+
+The `redirectUrls` in `app-hsmeta.json` list both `localhost:3000` (for
+local OAuth testing) and the production URL — keep both in sync with
+whatever `HUBSPOT_REDIRECT_URI` your running instance actually uses.

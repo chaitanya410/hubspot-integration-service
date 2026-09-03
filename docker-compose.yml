@@ -1,4 +1,20 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hubspot
+      POSTGRES_PASSWORD: hubspot
+      POSTGRES_DB: hubspot_integration
+    volumes:
+      - hubspot-db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hubspot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   app:
     build: .
     ports:
@@ -6,12 +22,13 @@ services:
     env_file:
       - .env
     environment:
-      # Overrides just the DB location to use the mounted volume below;
-      # everything else comes from your .env file.
-      DATABASE_URL: "file:/app/data/prod.db"
-    volumes:
-      - hubspot-data:/app/data
+      # Overrides just the DB connection to point at the `db` service above;
+      # everything else (HubSpot credentials, etc.) comes from your .env file.
+      DATABASE_URL: "postgresql://hubspot:hubspot@db:5432/hubspot_integration?schema=public"
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  hubspot-data:
+  hubspot-db-data:

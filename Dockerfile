@@ -21,9 +21,9 @@ RUN npm install --omit=dev && npx prisma generate
 
 COPY --from=build /app/dist ./dist
 
-# Persist the SQLite file outside the container's writable layer.
-VOLUME ["/app/data"]
-ENV DATABASE_URL="file:/app/data/prod.db"
+# DATABASE_URL (a PostgreSQL connection string) is supplied at runtime via
+# --env-file / docker-compose / your host's env var settings - see
+# docker-compose.yml for a local Postgres you can point it at.
 
 RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
 USER app
