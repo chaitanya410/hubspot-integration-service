@@ -12,3 +12,6 @@ coverage/
 
 .vercel
 .env*
+
+# Personal local testing dashboard - not part of the deliverable
+dashboard.html
